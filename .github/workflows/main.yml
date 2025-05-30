@@ -1,0 +1,67 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: |
+          npm test > test-results.txt || true  # Run tests, save output, prevent failure stopping the workflow
+
+      - name: Upload test results artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: test-results.txt
+
+  deploy:
+    needs: test
+    runs-on: self-hosted  
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download test results artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: test-results
+          path: ./test-results
+
+      - name: Display test results
+        run: cat ./test-results/test-results.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Deploy application
+        run: |
+          # Example deployment steps, adjust as per your environment
+          # For example, start your app using pm2 or node directly
+          pm2 stop ostad-app || true
+          pm2 start index.js --name ostad-app
